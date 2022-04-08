@@ -7,6 +7,8 @@ from collections import defaultdict
 from gurobi_graph import *
 from time import time
 
+
+
 def get_verb_index(tags):
     for i, t in enumerate(tags):
         if t == "B-V":
@@ -319,6 +321,8 @@ class CogCompTimeBackend:
         all_event_ids = list(event_map.keys())
         to_process_instances = []
         for event_id_i in all_event_ids:
+            event_set_tmp = set()   
+
             for event_id_j in all_event_ids:
                 if event_id_i == event_id_j:
                     continue
@@ -336,10 +340,15 @@ class CogCompTimeBackend:
 
                 if phrase_i == phrase_j:
                     continue
+                if phrase_j in event_set_tmp:
+                    continue
+                # if abs(event_id_i - event_id_j) >= 5:
+                #     continue
 
                 instance = "event: {} starts before {} story: {} \t nothing".format(phrase_i, phrase_j, story)
                 to_process_instances.append(instance)
-        
+
+                event_set_tmp.add(phrase_j)
         print("Processing Time (all_event_ids, to_process_instances): ", time() - tmp_start_time)
 
 
@@ -393,6 +402,7 @@ class CogCompTimeBackend:
         tmp_start_time = time()
         # print("event_map : ", event_map)
         for event_id_i in all_event_ids:
+            event_set_tmp = set() 
             for event_id_j in all_event_ids:
                 if event_id_i == event_id_j:
                     continue
@@ -404,6 +414,12 @@ class CogCompTimeBackend:
                 # phrase_j = self.format_model_phrase(event_id_j, srl_objs[event_id_j[0]])
                 if event_map[event_id_i][2] == event_map[event_id_j][2]:
                     continue
+                if event_map[event_id_j][2] in event_set_tmp:
+                    continue
+                # if abs(event_id_i - event_id_j) >= 5:
+                #     continue
+
+                event_set_tmp.add(event_map[event_id_j][2])
                 # if phrase_i == phrase_j:
                 #     continue
                 prediction = results[it]
@@ -439,7 +455,8 @@ class CogCompTimeBackend:
                 edge_map[key] += value
         
         print("Processing Time (edge_map): ", time() - tmp_start_time)
-
+        # print("edge_map: ", edge_map)
+        # print("distance_map: \n", distance_map)
         tmp_start_time = time()
 
         directed_edge_map = {}
@@ -450,21 +467,31 @@ class CogCompTimeBackend:
             else:
                 directed_edge_map[edge] = edge_map[edge] / 2.0
         print("Processing Time (directed_edge_map): ", time() - tmp_start_time)
-
+        # print("directed_edge_map: ", directed_edge_map)
         tmp_start_time = time()
         sorted_edges = self.ilp_sort(directed_edge_map)
         single_verb_map = {}
         relation_map = {}
-        for i in range(0, len(sorted_edges)):
+        num_edges = len(sorted_edges)
+        print("num_edges: ", num_edges, " , sorted_edges:\n", sorted_edges)
+
+        for i in range(0, num_edges):
             input_arg = (event_map[sorted_edges[i]][0], event_map[sorted_edges[i]][1])
             timex = str(self.alex_srl.get_absolute_time(input_arg))
             duration = duration_map[sorted_edges[i]]
             single_verb_map[sorted_edges[i]] = [timex, duration]
-            for j in range(i+1, len(sorted_edges)):
-                # print("sorted_edges[i] : ", sorted_edges[i], event_map[sorted_edges[i]][2])
-                # print("sorted_edges[j] : ", sorted_edges[j], event_map[sorted_edges[j]][2])
+            event_set_tmp = set() 
+            for j in range(i+1, num_edges):
+                # print("sorted_edges[i] : ", sorted_edges[i], " :: ",event_map[sorted_edges[i]])
+                # print("sorted_edges[j] : ", sorted_edges[j], " :: ",event_map[sorted_edges[j]])
                 if event_map[sorted_edges[i]][2] == event_map[sorted_edges[j]][2]:
                     continue
+                if event_map[sorted_edges[j]][2] in event_set_tmp:
+                    continue
+                # if abs(sorted_edges[i] - sorted_edges[j]) >= 5:
+                #     continue
+                event_set_tmp.add(event_map[sorted_edges[j]][2])
+                
                 distance = self.get_averaged_val(distance_map[(sorted_edges[i], sorted_edges[j])])
 
                 relation_map[(sorted_edges[i], sorted_edges[j])] = ["before", distance]
