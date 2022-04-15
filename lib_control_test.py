@@ -1,5 +1,5 @@
 from tracie_model.start_predictor import Predictor
-from lib_parser import PretrainedModel, AllenSRL, TimeStruct
+from lib_parser_test import PretrainedModel, AllenSRL, TimeStruct
 import random
 import spacy
 import torch
@@ -294,11 +294,19 @@ class CogCompTimeBackend:
     @temporal_relation: a list of binary comparisons [(0, 1, distance), (1, 0, distance)]
     '''
     def build_graph_with_events(self, tokens, sentences, verb_srl, indices, dct=None):
-        start_time = time()
+        # start_time = time()
         tmp_start_time = time()
         sentences, srl_objs = self.parse_srl(sentences, pre_sentencized=True)
-        # print("\n---sentences(org): \n", sentences22)
-        # print("\n---srl_objs(org): \n", srl_objs)
+        '''
+        print("-"*30)
+        print("--- tokens : ", tokens)
+        print("--- sentences : ", sentences)
+        print("-"*30)
+        print("--- verb_srl : \n", verb_srl)
+        print("-"*30)
+        print("--- srl_objs : \n", srl_objs)
+        print("-"*30)
+        '''
 
         # sentences = tokens
         # srl_objs = verb_srl
@@ -306,15 +314,15 @@ class CogCompTimeBackend:
 
         # print("\n---sentences: \n", sentences)
         # print("n\---srl_objs: \n", srl_objs)
-        print("Processing Time (parse_srl): ", time() - tmp_start_time)
+        # print("Processing Time (parse_srl): ", time() - tmp_start_time)
         
         tmp_start_time = time()
         story = get_story(srl_objs)
-        print("Processing Time (get_story): ", time() - tmp_start_time)
+        # print("Processing Time (get_story): ", time() - tmp_start_time)
         
         tmp_start_time = time()
         event_map = self.extract_events_given(indices, sentences)
-        print("Processing Time (extract_events_given): ", time() - tmp_start_time)
+        # print("Processing Time (extract_events_given): ", time() - tmp_start_time)
         
         tmp_start_time = time()
 
@@ -349,7 +357,7 @@ class CogCompTimeBackend:
                 to_process_instances.append(instance)
 
                 event_set_tmp.add(phrase_j)
-        print("Processing Time (all_event_ids, to_process_instances): ", time() - tmp_start_time)
+        # print("Processing Time (all_event_ids, to_process_instances): ", time() - tmp_start_time)
 
 
         tmp_start_time = time()
@@ -360,26 +368,26 @@ class CogCompTimeBackend:
             phrase = self.format_duration_phrase(event_i, srl_objs[event_i[0]])
             to_process_duration.append("event: {} story: {} \t nothing".format(phrase, story))
 
-        print("Processing Time (to_process_duration): ", time() - tmp_start_time)
+        # print("Processing Time (to_process_duration): ", time() - tmp_start_time)
 
         tmp_start_time = time()
         results = self.predictor.predict(to_process_instances)
-        print("Processing Time (predict - results): ", time() - tmp_start_time)
+        # print("Processing Time (predict - results): ", time() - tmp_start_time)
 
         tmp_start_time = time()
         results_distance = self.predictor.predict(to_process_instances, query_type="distance")
-        print("Processing Time (predict - distance): ", time() - tmp_start_time)
+        # print("Processing Time (predict - distance): ", time() - tmp_start_time)
 
         tmp_start_time = time()
         results_duration = self.predictor.predict(to_process_duration, query_type="duration")
-        print("Processing Time (predict-duration): ", time() - tmp_start_time)
+        # print("Processing Time (predict-duration): ", time() - tmp_start_time)
 
 
         tmp_start_time = time()
         duration_map = {}
         for i, event_id_i in enumerate(all_event_ids):
             duration_map[event_id_i] = self.get_averaged_val(results_duration[i])
-        print("Processing Time (duration_map): ", time() - tmp_start_time)
+        # print("Processing Time (duration_map): ", time() - tmp_start_time)
 
         tmp_start_time = time()
         edge_map = {}
@@ -393,11 +401,11 @@ class CogCompTimeBackend:
         else:
             dct = TimeStruct(None, None, int(dct.split("-")[2]), int(dct.split("-")[1]), int(dct.split("-")[0]))
         
-        print("Processing Time (Timestruct): ", time() - tmp_start_time)
+        # print("Processing Time (Timestruct): ", time() - tmp_start_time)
         
         tmp_start_time = time()
-        self.alex_srl.get_graph(tokens, dct)
-        print("Processing Time (alex_srl.get_graph): ", time() - tmp_start_time)
+        self.alex_srl.get_graph(tokens, dct, verb_srl_all=srl_objs)
+        # print("Processing Time (alex_srl.get_graph): ", time() - tmp_start_time)
         
         tmp_start_time = time()
         # print("event_map : ", event_map)
@@ -454,7 +462,7 @@ class CogCompTimeBackend:
                     edge_map[key] = 0.0
                 edge_map[key] += value
         
-        print("Processing Time (edge_map): ", time() - tmp_start_time)
+        # print("Processing Time (edge_map): ", time() - tmp_start_time)
         # print("edge_map: ", edge_map)
         # print("distance_map: \n", distance_map)
         tmp_start_time = time()
@@ -466,14 +474,14 @@ class CogCompTimeBackend:
                 directed_edge_map[key] = (2.0 - edge_map[edge]) / 2.0
             else:
                 directed_edge_map[edge] = edge_map[edge] / 2.0
-        print("Processing Time (directed_edge_map): ", time() - tmp_start_time)
+        # print("Processing Time (directed_edge_map): ", time() - tmp_start_time)
         # print("directed_edge_map: ", directed_edge_map)
         tmp_start_time = time()
         sorted_edges = self.ilp_sort(directed_edge_map)
         single_verb_map = {}
         relation_map = {}
         num_edges = len(sorted_edges)
-        print("num_edges: ", num_edges, " , sorted_edges:\n", sorted_edges)
+        # print("num_edges: ", num_edges, " , sorted_edges:\n", sorted_edges)
 
         for i in range(0, num_edges):
             input_arg = (event_map[sorted_edges[i]][0], event_map[sorted_edges[i]][1])
@@ -496,10 +504,10 @@ class CogCompTimeBackend:
 
                 relation_map[(sorted_edges[i], sorted_edges[j])] = ["before", distance]
                 relation_map[(sorted_edges[j], sorted_edges[i])] = ["after", distance]
-        print("Processing Time (sorted_edges): ", time() - tmp_start_time)
+        # print("Processing Time (sorted_edges): ", time() - tmp_start_time)
 
 
-        print("Processing time (build_graph_with_events)  : ", time() - start_time)
+        # print("Processing time (build_graph_with_events)  : ", time() - start_time)
         return single_verb_map, relation_map
 
     '''
