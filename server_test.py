@@ -11,10 +11,11 @@ import json
 
 import time
 
-import torch, gc
+# import torch
+# import  gc
 
-gc.collect()
-torch.cuda.empty_cache()
+# gc.collect()
+# torch.cuda.empty_cache()
 
 
 class CogCompTimeDemoService:
@@ -93,7 +94,7 @@ class CogCompTimeDemoService:
         return form
 
     def handle_json_request(self):
-        print("handle_json_request")
+        # print("handle_json_request")
         start_time = time.time()
         
         args_all = request.get_json()
