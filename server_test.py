@@ -107,6 +107,9 @@ class CogCompTimeDemoService:
 
         if "verb_srl" in args_all:
             verb_srl = args_all["verb_srl"]
+            # print("_"*30)
+            # print("verb_srl:\n", verb_srl)
+            # print("_"*30)
 
         tokens = args["tokens"]
         sent_ends = args["sentences"]["sentenceEndPositions"]
