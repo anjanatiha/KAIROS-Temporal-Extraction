@@ -296,7 +296,10 @@ class CogCompTimeBackend:
     def build_graph_with_events(self, tokens, sentences, verb_srl, indices, dct=None):
         # start_time = time()
         tmp_start_time = time()
-        sentences, srl_objs = self.parse_srl(sentences, pre_sentencized=True)
+        if len(verb_srl)<=0:
+            sentences, srl_objs = self.parse_srl(sentences, pre_sentencized=True)
+        else:
+            srl_objs = verb_srl
         '''
         print("-"*30)
         print("--- tokens : ", tokens)
